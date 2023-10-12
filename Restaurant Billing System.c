@@ -15,6 +15,7 @@ struct menu
 struct menu_items
 {
 	int item_no;
+	char item_name[20];
 	int quantity;
 	int price;
 };
@@ -93,19 +94,25 @@ int date_cmp(struct date d1, struct date d2) {
 void print_bill(struct bill_item *t)
 {
 	int i;
-	printf("-----------Invoice-------------\n\n");
-	printf("Bill Number : %d\n",t->bill_no);
-	printf("Customer Name : %s\n",t->cust_name);
-	printf("Bill date : ");
+	printf("----------------------------------------------\n");
+	printf("                    Invoice                   \n");
+	printf("----------------------------------------------\n\n");
+	printf(" Bill Number          :\t\t%d\n",t->bill_no);
+	printf(" Customer Name        :\t\t%s\n",t->cust_name);
+	printf(" Date                 :\t\t");
 	date_print(t->d);
-	printf("--------- Items ---------\n\n");
+	printf("----------------------------------------------\n");
+	printf("                     ITEMS                    \n");
+	printf("----------------------------------------------\n\n");
+	printf(" Item\t\t   Quantity\t   Price\n");
+	printf("-------------  --------------  ---------------\n\n");
     for(i=0;i<t->items_count;i++)
     {	
-    	printf("Item num - %d\t Price - %d\tQuantity - %d\n\n",t->items[i].item_no,t->items[i].price,t->items[i].quantity);
+    	printf("%s\t\t%d\t\t%d\n\n",t->items[i].item_name,t->items[i].quantity,t->items[i].price);
 	}
-	printf("-----------------------\n\n");
-	printf("Total Amount : Rs %d\n",t->total);	
-	printf("--------------------------------\n\n\n");
+	printf("----------------------------------------------\n");
+	printf("Total Amount \t\t\t Rs %d\n",t->total);	
+	printf("----------------------------------------------\n\n\n\n\n\n");
 }
  
 void disp_bills()
@@ -236,8 +243,12 @@ struct bill_item *readBills(){
     file = fopen ("bills.txt", "rb");
     if (file == NULL)
     {
-        fprintf(stderr, "\nCouldn't Open File'\n");
-        exit (1);
+    	fclose(file);
+        file = fopen("bills.txt", "wb");
+        fclose(file);
+        return temp;
+//        fprintf(stderr, "\nCouldn't Open File'\n");
+//        exit (1);
     }
     while(fread(temp, sizeof(struct bill_item), 1, file))
     {
@@ -261,6 +272,7 @@ struct bill_item *readBills(){
         for(i=0;i<temp->items_count;i++)
         {
         	last->items[i].item_no = temp->items[i].item_no;
+        	strcpy(last->items[i].item_name,temp->items[i].item_name);
         	last->items[i].price = temp->items[i].price;
         	last->items[i].quantity = temp->items[i].quantity;
 		}
@@ -287,22 +299,26 @@ void write_to_bills_file()
         fwrite(t, sizeof(struct bill_item), 1, file);
         t = t->next;
     }
-    if(fwrite != 0)
-        printf("Data stored in the file successfully\n");
-    else
-        printf("Error While Writing\n");    
+    if(fwrite == 0)
+        printf("Error While Writing\n"); 
     fclose(file);
 }
 
 struct bill_item *generate_invoice(struct bill_item *t)
 {
 	int itemno,c_flag=1,i=0,q,total=0;
+	if(head == NULL)
+	{
+		printf("\n\n  No Menu Items!!\n  Add a menu item by going to the Admin Portal  ");
+		getch();
+		return t;
+	}
 	if(bhead == NULL)
 	{
 		bhead=t;
 	}
 	else{
-		t->next = (struct bill_item *)malloc(sizeof(struct bill_item));;
+		t->next = (struct bill_item *)malloc(sizeof(struct bill_item));
 		t=t->next;
 	}
 	
@@ -318,6 +334,8 @@ struct bill_item *generate_invoice(struct bill_item *t)
 		m1 = search_item(itemno);
 		if(m1!=NULL)
 		{
+			printf("%s\n",m1->name);
+			strcpy(t->items[i].item_name,m1->name);
 			t->items[i].item_no=itemno;
 			printf("Enter the quantity : ");
 			scanf("%d",&q);
@@ -337,6 +355,11 @@ struct bill_item *generate_invoice(struct bill_item *t)
 	t->d = get_date();
 	t->next = NULL;
 	write_to_bills_file();
+	system("cls");
+	printf("\n\n\n");
+	print_bill(t);
+	getch();
+	system("cls");
 	return t;
 }
 
@@ -357,10 +380,8 @@ void write_to_menu_file()
         fwrite(temp, sizeof(struct menu), 1, file);
         temp = temp->next;
     }
-    if(fwrite != 0)
-        printf("Linked List stored in the file successfully\n");
-    else
-        printf("Error While Writing\n");    
+    if(fwrite == 0)
+    	printf("Error While Writing\n");    
     fclose(file);
 }
 
@@ -369,9 +390,10 @@ void insert_menu_item()
 	struct menu *t;
 	char tname[30];
 	int tprice;
-	printf("Enter the item name : ");
+	printf("\n\n------------Add Menu Item-------------\n\n\n\n");
+	printf("  Enter the item name : ");
 	scanf(" %[^\n]",&tname);
-	printf("Enter the item price : ");
+	printf("  Enter the item price : ");
 	scanf("%d",&tprice);
 	if(head == NULL)
     {
@@ -395,6 +417,89 @@ void insert_menu_item()
         t->next->next = NULL;
     }
     write_to_menu_file();
+    printf(" Item Succesfully Added\n");
+    getch();
+}
+
+void update_menu_item()
+{
+	struct menu *t;
+	char tname[30];
+	int tno,tprice,ch;
+	printf("\n\n------------Update Menu Item-------------\n\n\n\n");
+	if(head == NULL)
+        printf("No Menu Items!!!\n");
+    else
+    {
+    	printf(" Enter the item number : ");
+		scanf("%d",&tno);
+		t=head;
+		while(t!=NULL && t->item_no != tno)
+			t=t->next;
+		if(t==NULL)
+			printf(" Item Not Found!");
+		else{
+			printf("\n Item Name - %s\n Price    - %d\n\n",t->name,t->price);
+			do{
+				printf(" Do you want to change Item name ? (1.Yes   2.No)  : ");
+				scanf("%d",&ch);
+				if(ch == 1)
+				{
+					printf(" Enter the new Item name : ");
+					scanf(" %[^\n]",&tname);
+					strcpy(t->name,tname);
+					break;
+				}
+				else if(ch == 2)
+					break;
+				else
+					printf(" Wrong choice!\n");
+			}
+			while(ch != 1 || ch!=2);
+			printf(" Enter the new Item Price : ");
+			scanf("%d",&tprice);
+			t->price = tprice;
+			printf(" Item Succesfully Updated\n");
+		}
+	}
+	write_to_menu_file();
+    getch();
+}
+
+void delete_menu_item()
+{
+	struct menu *t;
+	char tname[30];
+	int tno,tprice,ch;
+	printf("\n\n------------Delete Menu Item-------------\n\n\n\n");
+	if(head == NULL)
+        printf("No Menu Items!!!\n");
+    else
+    {
+    	printf(" Enter the item number to delete : ");
+		scanf("%d",&tno);
+		if(head->item_no == tno)
+		{
+			t = head;
+			head = head->next;
+			free(t);
+		}
+		else
+		{
+			t=head;
+			while(t->next!=NULL && t->next->item_no != tno)
+				t=t->next;
+			if(t->next == NULL)
+				printf(" Item not found!\n");
+			else
+			{
+				t->next=t->next->next;
+				printf(" Item succesfully deleted\n");
+			}
+		}
+	}
+	write_to_menu_file();
+	getch();
 }
 
 void readLinkedList(){
@@ -433,7 +538,7 @@ void readLinkedList(){
     fclose(file);
 }
 
-search_bill_by_no()
+void search_bill_by_no()
 {
 	struct bill_item *t;
 	int bno;
@@ -467,7 +572,7 @@ search_bill_by_no()
     getch();
 }
 
-search_bill_by_cname()
+void search_bill_by_cname()
 {
 	struct bill_item *t;
 	char cname[20],lower_cname[20],lower_cust_name[20];
@@ -508,7 +613,7 @@ search_bill_by_cname()
     getch();
 }
 
-bill_display_menu()
+void bill_display_menu()
 {
 	int ch;
 	do
@@ -534,7 +639,7 @@ bill_display_menu()
 	}while(ch!=4);
 }
 
-bill_search_menu()
+void bill_search_menu()
 {
 	int ch;
 	do
@@ -570,32 +675,53 @@ int admin_menu()
 {
 	int ch;
 	system("cls");
-	printf("\n\n1.Add Menu Item\n2. Display Menu Items\n3. Logout");
+	printf("\n\n 1. Add Menu Item\n 2. Update Menu Item\n 3. Delete Menu Item\n 4. Display Menu Items\n 5. Logout");
 	printf("\n\nYour choice:\t");
     scanf("%d",&ch);
+    system("cls");
     return ch;
 }
 
 void admin_portal()
 {
 	int ch;
-	for(ch=admin_menu();ch!=3;ch=admin_menu())
+	for(ch=admin_menu();ch!=5;ch=admin_menu())
 	{
 		switch(ch)
 		{
 			case 1 : insert_menu_item();
 					  break;
-			case 2 : disp_menu();
+			case 2 : update_menu_item();
+					 break;
+			case 3 : delete_menu_item();
+					 break;
+			case 4 : disp_menu();
 					 getch();
-					  break;
+					 break;
 			default : printf("\nWrong choice");
 		    		 break;
 		}
 	}
+	
 }
+checkfile()
+{
+	FILE* file1;
+    file1 = fopen ("menu_list.txt", "rb");
+    if (file1 == NULL)
+    {
+        fclose(file1);
+        file1 = fopen("menu_list.txt", "wb");
+        fclose(file1);
+    }
+    else
+    	fclose(file1);
+}
+
 void main()
 {
 	int ch;
+	checkfile();
 	readLinkedList();
 	struct bill_item *t;
 	t=readBills();
@@ -616,5 +742,3 @@ void main()
 		}
 	}
 }
-
-
